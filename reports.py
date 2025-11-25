@@ -1,19 +1,20 @@
 import storage
 import utils
+from datetime import datetime
 
 def resumo_por_projeto():
     projetos = storage.carregar_projetos()
     tarefas = storage.carregar_tarefas()
 
     for p in projetos:
-        tarefas_proj = [t for t in tarefas if t["projeto_id"] == p["id"]]
+        tarefas_proj = [t for t in tarefas if t.get("projeto_id") == p.get("id")]
         total = len(tarefas_proj)
-        concluidas = len([t for t in tarefas_proj if t["status"] == "concluida"])
-        andamento = len([t for t in tarefas_proj if t["status"] == "andamento"])
-        pendentes = len([t for t in tarefas_proj if t["status"] == "pendente"])
+        concluidas = len([t for t in tarefas_proj if t.get("status","").lower() == "concluida"])
+        andamento = len([t for t in tarefas_proj if t.get("status","").lower() == "andamento"])
+        pendentes = len([t for t in tarefas_proj if t.get("status","").lower() == "pendente"])
         perc_concluido = (concluidas / total * 100) if total > 0 else 0
 
-        print(f"\nProjeto: {p['nome']}")
+        print(f"\nProjeto: {p.get('nome')}")
         print(f"  Total: {total}")
         print(f"  Pendentes: {pendentes}")
         print(f"  Em andamento: {andamento}")
@@ -26,24 +27,33 @@ def produtividade_por_usuario():
     inicio = input("Data início (YYYY-MM-DD): ")
     fim = input("Data fim (YYYY-MM-DD): ")
 
+    if not (utils.validar_data(inicio) and utils.validar_data(fim)):
+        print("Datas inválidas. Use o formato YYYY-MM-DD.")
+        return
+
+    d_inicio = datetime.strptime(inicio, "%Y-%m-%d").date()
+    d_fim = datetime.strptime(fim, "%Y-%m-%d").date()
+
     for u in usuarios:
         concluidas = [
             t for t in tarefas
-            if t["responsavel_id"] == u["id"]
-            and t["status"] == "concluida"
-            and inicio <= t["prazo"] <= fim
+            if t.get("responsavel_id") == u.get("id")
+            and t.get("status","").lower() == "concluida"
+            and utils.validar_data(t.get("prazo",""))
+            and d_inicio <= datetime.strptime(t.get("prazo"), "%Y-%m-%d").date() <= d_fim
         ]
-        print(f"{u['nome']} - {len(concluidas)} tarefas concluídas no período.")
+        print(f"{u.get('nome')} - {len(concluidas)} tarefas concluídas no período.")
 
 def tarefas_atrasadas():
     hoje = utils.hoje()
     tarefas = storage.carregar_tarefas()
     atrasadas = [
         t for t in tarefas
-        if t["status"] != "concluida" and utils.validar_data(t["prazo"])
-        and t["prazo"] < str(hoje)
+        if t.get("status","").lower() != "concluida"
+        and utils.validar_data(t.get("prazo",""))
+        and datetime.strptime(t.get("prazo"), "%Y-%m-%d").date() < hoje
     ]
 
     print("\nTarefas atrasadas:")
     for t in atrasadas:
-        print(f"{t['id']} - {t['titulo']} - Prazo: {t['prazo']} - Status: {t['status']}")
+        print(f"{t.get('id')} - {t.get('titulo')} - Prazo: {t.get('prazo')} - Status: {t.get('status')}")

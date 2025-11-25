@@ -2,16 +2,16 @@ import ui
 
 def main():
     while True:
-        opcao = ui.menu_principal()
-        if opcao == "1":
+        opcao_menu = ui.menu_principal()
+        if opcao_menu == "1":
             ui.menu_usuarios()
-        elif opcao == "2":
+        elif opcao_menu == "2":
             ui.menu_projetos()
-        elif opcao == "3":
+        elif opcao_menu == "3":
             ui.menu_tarefas()
-        elif opcao == "4":
+        elif opcao_menu == "4":
             ui.menu_relatorios()
-        elif opcao == "0":
+        elif opcao_menu == "0":
             print("Saindo... Até logo!")
             break
         else:

@@ -2,6 +2,8 @@ import models
 import storage
 import utils
 
+VALID_STATUSES = {"pendente", "andamento", "concluida"}
+
 # === USUÁRIOS ===
 
 def cadastrar_usuario():
@@ -18,7 +20,7 @@ def cadastrar_usuario():
         return
 
     if not models.validar_email_unico(email):
-        print("Email já cadastrado.")
+        print("Email já foi cadastrado.")
         return
 
     usuario = models.criar_usuario(nome, email, perfil)
@@ -28,27 +30,31 @@ def cadastrar_usuario():
 def listar_usuarios():
     usuarios = storage.carregar_usuarios()
     for u in usuarios:
-        print(f"{u['id']} - {u['nome']} - {u['email']} ({u['perfil']})")
+        print(f"{u.get('id')} - {u.get('nome')} - {u.get('email')} ({u.get('perfil')})")
 
 def buscar_usuario():
     termo = input("Digite nome ou email: ").lower()
     encontrados = [u for u in storage.carregar_usuarios()
-                   if termo in u['nome'].lower() or termo in u['email'].lower()]
+                   if termo in u.get('nome','').lower() or termo in u.get('email','').lower()]
     for u in encontrados:
-        print(f"{u['id']} - {u['nome']} - {u['email']} ({u['perfil']})")
+        print(f"{u.get('id')} - {u.get('nome')} - {u.get('email')} ({u.get('perfil')})")
 
 def atualizar_usuario():
     listar_usuarios()
     uid = input("ID do usuário a atualizar: ")
     usuarios = storage.carregar_usuarios()
     for u in usuarios:
-        if u["id"] == uid:
-            nome = input(f"Novo nome ({u['nome']}): ") or u['nome']
-            email = input(f"Novo email ({u['email']}): ") or u['email']
-            perfil = input(f"Novo perfil ({u['perfil']}): ") or u['perfil']
+        if u.get("id") == uid:
+            nome = input(f"Novo nome ({u.get('nome')}): ") or u.get('nome')
+            email = input(f"Novo email ({u.get('email')}): ") or u.get('email')
+            perfil = input(f"Novo perfil ({u.get('perfil')}): ") or u.get('perfil')
 
-            if email != u["email"] and not models.validar_email_unico(email):
+            if email != u.get("email") and not models.validar_email_unico(email):
                 print("Email já existe.")
+                return
+
+            if not utils.validar_email(email):
+                print("Email inválido.")
                 return
 
             u.update({"nome": nome, "email": email, "perfil": perfil})
@@ -59,20 +65,19 @@ def atualizar_usuario():
 
 def remover_usuario():
     listar_usuarios()
-    uid = input("ID do usuário a remover: ")
+    uid = input("ID da usuário a remover: ")
     usuarios = storage.carregar_usuarios()
-    usuarios = [u for u in usuarios if u["id"] != uid]
+    usuarios = [u for u in usuarios if u.get("id") != uid]
     storage.salvar_usuarios(usuarios)
     print("Usuário removido.")
 
 
 # === PROJETOS ===
-
 def cadastrar_projeto():
     nome = input("Nome do projeto: ")
     descricao = input("Descrição: ")
-    inicio = input("Data de início (YYYY-MM-DD): ")
-    fim = input("Data de fim (YYYY-MM-DD): ")
+    inicio = input("Data início (YYYY-MM-DD): ")
+    fim = input("Data fim (YYYY-MM-DD): ")
 
     if not utils.validar_datas(inicio, fim):
         print("Datas inválidas.")
@@ -84,50 +89,53 @@ def cadastrar_projeto():
 
     projeto = models.criar_projeto(nome, descricao, inicio, fim)
     storage.salvar_projeto(projeto)
-    print("Projeto cadastrado.")
+    print("Projeto cadastrado!")
 
 def listar_projetos():
     for p in storage.carregar_projetos():
-        print(f"{p['id']} - {p['nome']} ({p['inicio']} a {p['fim']})")
+        print(f"{p.get('id')} - {p.get('nome')} ({p.get('inicio')} até {p.get('fim')})")
 
 def buscar_projeto():
-    termo = input("Digite nome do projeto: ").lower()
+    termo = input("Nome do projeto: ").lower()
     for p in storage.carregar_projetos():
-        if termo in p["nome"].lower():
-            print(f"{p['id']} - {p['nome']} ({p['inicio']} a {p['fim']})")
+        if termo in p.get("nome","").lower():
+            print(f"{p.get('id')} - {p.get('nome')} ({p.get('inicio')} até {p.get('fim')})")
 
 def atualizar_projeto():
     listar_projetos()
     pid = input("ID do projeto: ")
     projetos = storage.carregar_projetos()
     for p in projetos:
-        if p["id"] == pid:
-            nome = input(f"Novo nome ({p['nome']}): ") or p['nome']
-            descricao = input(f"Nova descrição ({p['descricao']}): ") or p['descricao']
-            inicio = input(f"Nova data de início ({p['inicio']}): ") or p['inicio']
-            fim = input(f"Nova data de fim ({p['fim']}): ") or p['fim']
+        if p.get("id") == pid:
+            nome = input(f"Novo nome ({p.get('nome')}): ") or p.get('nome')
+            descricao = input(f"Nova descrição ({p.get('descricao')}): ") or p.get('descricao')
+            inicio = input(f"Nova data início ({p.get('inicio')}): ") or p.get('inicio')
+            fim = input(f"Nova data fim ({p.get('fim')}): ") or p.get('fim')
 
             if not utils.validar_datas(inicio, fim):
                 print("Datas inválidas.")
                 return
 
+            if nome != p.get("nome") and not models.validar_nome_projeto_unico(nome):
+                print("Nome já existe.")
+                return
+
             p.update({"nome": nome, "descricao": descricao, "inicio": inicio, "fim": fim})
             storage.salvar_projetos(projetos)
-            print("Projeto atualizado.")
+            print("Projeto atualizado!")
             return
     print("Projeto não encontrado.")
 
 def remover_projeto():
     listar_projetos()
-    pid = input("ID do projeto a remover: ")
+    pid = input("ID do projeto: ")
     projetos = storage.carregar_projetos()
-    projetos = [p for p in projetos if p["id"] != pid]
+    projetos = [p for p in projetos if p.get("id") != pid]
     storage.salvar_projetos(projetos)
-    print("Projeto removido.")
+    print("Projeto removido!")
 
 
 # === TAREFAS ===
-
 def cadastrar_tarefa():
     titulo = input("Título da tarefa: ")
     listar_projetos()
@@ -143,48 +151,56 @@ def cadastrar_tarefa():
 
     tarefa = models.criar_tarefa(titulo, projeto_id, responsavel_id, status, prazo)
     storage.salvar_tarefa(tarefa)
-    print("Tarefa cadastrada.")
+    print("Tarefa cadastrada!")
 
 def listar_tarefas():
     for t in storage.carregar_tarefas():
-        print(f"{t['id']} - {t['titulo']} - {t['status']} - Prazo: {t['prazo']}")
+        print(f"{t.get('id')} - {t.get('titulo')} - {t.get('status')} - Prazo: {t.get('prazo')}")
 
 def listar_tarefas_por_projeto():
     listar_projetos()
     pid = input("ID do projeto: ")
     tarefas = storage.carregar_tarefas()
     for t in tarefas:
-        if t["projeto_id"] == pid:
-            print(f"{t['id']} - {t['titulo']} - {t['status']} - Prazo: {t['prazo']}")
+        if t.get("projeto_id") == pid:
+            print(f"{t.get('id')} - {t.get('titulo')} - {t.get('status')} - Prazo: {t.get('prazo')}")
 
 def listar_tarefas_por_responsavel():
     listar_usuarios()
     uid = input("ID do responsável: ")
     tarefas = storage.carregar_tarefas()
     for t in tarefas:
-        if t["responsavel_id"] == uid:
-            print(f"{t['id']} - {t['titulo']} - {t['status']} - Prazo: {t['prazo']}")
+        if t.get("responsavel_id") == uid:
+            print(f"{t.get('id')} - {t.get('titulo')} - {t.get('status')} - Prazo: {t.get('prazo')}")
 
 def listar_tarefas_por_status():
-    status = input("Status (pendente/andamento/concluida): ")
+    status = input("Status (pendente/andamento/concluida): ").lower()
+    if status not in VALID_STATUSES:
+        print("Status inválido.")
+        return
     tarefas = storage.carregar_tarefas()
     for t in tarefas:
-        if t["status"] == status:
-            print(f"{t['id']} - {t['titulo']} - {t['status']} - Prazo: {t['prazo']}")
+        if t.get("status","").lower() == status:
+            print(f"{t.get('id')} - {t.get('titulo')} - {t.get('status')} - Prazo: {t.get('prazo')}")
 
 def atualizar_tarefa():
     listar_tarefas()
     tid = input("ID da tarefa: ")
     tarefas = storage.carregar_tarefas()
     for t in tarefas:
-        if t["id"] == tid:
-            titulo = input(f"Novo título ({t['titulo']}): ") or t['titulo']
+        if t.get("id") == tid:
+            titulo = input(f"Novo título ({t.get('titulo')}): ") or t.get('titulo')
             listar_projetos()
-            projeto_id = input(f"Novo projeto ({t['projeto_id']}): ") or t['projeto_id']
+            projeto_id = input(f"Novo projeto ({t.get('projeto_id')}): ") or t.get('projeto_id')
             listar_usuarios()
-            responsavel_id = input(f"Novo responsável ({t['responsavel_id']}): ") or t['responsavel_id']
-            status = input(f"Novo status ({t['status']}): ") or t['status']
-            prazo = input(f"Novo prazo ({t['prazo']}): ") or t['prazo']
+            responsavel_id = input(f"Novo responsável ({t.get('responsavel_id')}): ") or t.get('responsavel_id')
+            status = input(f"Novo status ({t.get('status')}): ") or t.get('status')
+            prazo = input(f"Novo prazo ({t.get('prazo')}): ") or t.get('prazo')
+
+            status = status.lower()
+            if status not in VALID_STATUSES:
+                print("Status inválido.")
+                return
 
             if not utils.validar_data(prazo):
                 print("Data inválida.")
@@ -198,38 +214,38 @@ def atualizar_tarefa():
                 "prazo": prazo
             })
             storage.salvar_tarefas(tarefas)
-            print("Tarefa atualizada.")
+            print("Tarefa atualizada!")
             return
     print("Tarefa não encontrada.")
 
 def concluir_tarefa():
     listar_tarefas()
-    tid = input("ID da tarefa a concluir: ")
+    tid = input("ID da tarefa: ")
     tarefas = storage.carregar_tarefas()
     for t in tarefas:
-        if t["id"] == tid:
+        if t.get("id") == tid:
             t["status"] = "concluida"
             storage.salvar_tarefas(tarefas)
-            print("Tarefa concluída.")
+            print("Tarefa concluída!")
             return
     print("Tarefa não encontrada.")
 
 def reabrir_tarefa():
     listar_tarefas()
-    tid = input("ID da tarefa a reabrir: ")
+    tid = input("ID da tarefa: ")
     tarefas = storage.carregar_tarefas()
     for t in tarefas:
-        if t["id"] == tid:
+        if t.get("id") == tid:
             t["status"] = "pendente"
             storage.salvar_tarefas(tarefas)
-            print("Tarefa reaberta.")
+            print("Tarefa reaberta!")
             return
     print("Tarefa não encontrada.")
 
 def remover_tarefa():
     listar_tarefas()
-    tid = input("ID da tarefa a remover: ")
+    tid = input("ID da tarefa: ")
     tarefas = storage.carregar_tarefas()
-    tarefas = [t for t in tarefas if t["id"] != tid]
+    tarefas = [t for t in tarefas if t.get("id") != tid]
     storage.salvar_tarefas(tarefas)
-    print("Tarefa removida.")
+    print("Tarefa removida!")

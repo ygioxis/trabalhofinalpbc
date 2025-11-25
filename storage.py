@@ -2,6 +2,7 @@ import json
 import os
 
 DATA_DIR = "data"
+os.makedirs(DATA_DIR, exist_ok=True)
 
 def _caminho_arquivo(nome):
     return os.path.join(DATA_DIR, nome)
@@ -10,10 +11,14 @@ def _carregar_json(nome):
     try:
         with open(_caminho_arquivo(nome), "r", encoding="utf-8") as f:
             return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
+    except FileNotFoundError:
+        return []
+    except json.JSONDecodeError:
+        print(f"Atenção: arquivo {_caminho_arquivo(nome)} está corrompido ou não é JSON válido.")
         return []
 
 def _salvar_json(nome, dados):
+    os.makedirs(DATA_DIR, exist_ok=True)
     with open(_caminho_arquivo(nome), "w", encoding="utf-8") as f:
         json.dump(dados, f, indent=4, ensure_ascii=False)
 
@@ -52,3 +57,4 @@ def salvar_tarefa(tarefa):
 
 def salvar_tarefas(lista):
     _salvar_json("tarefas.json", lista)
+
